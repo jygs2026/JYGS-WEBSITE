@@ -8,11 +8,41 @@ export interface Banner {
   subheadline: string | null;
   imageUrl: string;
   imageAlt: string;
+  /** Optional second image, shown side by side with the first on wider screens. */
+  secondaryImageUrl: string | null;
+  secondaryImageAlt: string | null;
   ctaLabel: string | null;
   ctaHref: string | null;
   isVisible: boolean;
   sortOrder: number;
   updatedAt: ISODateString;
+}
+
+export interface BrandPillar {
+  title: string;
+  body: string;
+}
+
+export interface BrandStory {
+  eyebrow: string;
+  headline: string;
+  body: string;
+  imageUrl: string;
+  imageAlt: string;
+  pillars: BrandPillar[];
+}
+
+export interface GalleryImage {
+  id: UUID;
+  imageUrl: string;
+  imageAlt: string;
+}
+
+export interface SocialGallery {
+  handle: string;
+  /** Profile URL; null until the owner supplies real social links. */
+  profileUrl: string | null;
+  images: GalleryImage[];
 }
 
 export type HomepageSectionKey =

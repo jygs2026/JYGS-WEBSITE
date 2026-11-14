@@ -26,24 +26,37 @@ export interface Category extends Timestamps {
   sortOrder: number;
 }
 
+/** JYGS size run. Only these five sizes are offered (no XXL). */
+export type SizeLabel = "XS" | "S" | "M" | "L" | "XL";
+
+/** JYGS makes oversized and boxy T-shirts only. */
+export type ProductFit = "Oversized" | "Boxy";
+
 export interface Size {
   id: UUID;
-  /** Display label, e.g. "M" or "XL". */
-  label: string;
+  label: SizeLabel;
   sortOrder: number;
 }
 
 export interface Colour {
   id: UUID;
   name: string;
+  /** URL-safe identifier used in filters, e.g. "pine-green". */
+  slug: string;
   /** CSS colour used for the swatch, e.g. "#111111". */
   hex: string;
   sortOrder: number;
 }
 
+export type ProductImageView = "front" | "back";
+
 export interface ProductImage {
   id: UUID;
   productId: UUID;
+  /** Colourway this image shows; null when the image applies to every colour. */
+  colourId: UUID | null;
+  /** Which side of the garment is shown, when known. */
+  view: ProductImageView | null;
   /** Public URL (placeholder) or Supabase Storage path (M5+). */
   url: string;
   alt: string;
@@ -85,10 +98,11 @@ export interface Product extends Timestamps {
   isNewArrival: boolean;
   isBestSeller: boolean;
   isFeatured: boolean;
-  fabric: string | null;
-  fit: string | null;
-  /** Fabric weight in grams per square metre, when supplied. */
-  gsm: number | null;
+  /** Always "100% Compact Cotton" for JYGS tees. */
+  fabric: string;
+  fit: ProductFit;
+  /** Fabric weight in grams per square metre — 240 to 260 for JYGS tees. */
+  gsm: number;
 }
 
 export type StockStatus = "in_stock" | "low_stock" | "out_of_stock";

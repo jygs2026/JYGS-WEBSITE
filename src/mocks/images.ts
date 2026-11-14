@@ -10,6 +10,8 @@
  *
  * Replace both with the owner's real photography (brief §15).
  */
+import type { JygsColourSlug } from "@/config/product-info";
+
 export const stockPhotoIds = {
   whiteTeeModel: "1521572163474-6864f9cf17ab",
   manWhiteTeeStudio: "1586790170083-2f9ceadc732d",
@@ -31,9 +33,8 @@ export function stockPhoto(key: StockPhotoKey, width = 1600): string {
   return `https://images.unsplash.com/photo-${stockPhotoIds[key]}?auto=format&fit=crop&w=${width}&q=80`;
 }
 
-/** JYGS colourway slugs used by the placeholder tee artwork. */
-export type TeeColour =
-  "black" | "off-white" | "white" | "cherry" | "pine-green" | "me-lavender" | "plum";
+/** JYGS colourway slugs used by the placeholder tee artwork (from the brand config). */
+export type TeeColour = JygsColourSlug;
 
 /** Back-graphic placeholder styles available in the generated artwork. */
 export type BackGraphic = "stack" | "orbit" | "monogram" | "repeat";

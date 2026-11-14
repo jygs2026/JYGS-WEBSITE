@@ -11,6 +11,20 @@ import { getCollectionTitle, getPolicyTitle } from "@/config/routes";
 
 import { getCategoryBySlug, getPublishedProductBySlug } from "./catalog";
 
+/**
+ * The product's own colour slug for a requested `?colour=` value (case-insensitive), or null when
+ * the value is invalid / not offered — in which case the default product page is served.
+ */
+export async function resolveRequestedColourSlug(
+  productSlug: string,
+  requested: string,
+): Promise<string | null> {
+  const product = await getPublishedProductBySlug(productSlug);
+  const wanted = requested.trim().toLowerCase();
+  if (!product || !wanted) return null;
+  return product.variants.find((v) => v.isActive && v.colour.slug === wanted)?.colour.slug ?? null;
+}
+
 export async function slugRouteExists(section: string, slug: string): Promise<boolean> {
   switch (section) {
     case "product":

@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 
-import { siteConfig } from "@/config/site";
+import { siteConfig, siteUrl } from "@/config/site";
 
 import "./globals.css";
 
@@ -18,12 +18,16 @@ const fontMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: {
     default: `${siteConfig.name} — ${siteConfig.tagline}`,
     template: `%s | ${siteConfig.name}`,
   },
   description: siteConfig.description,
   applicationName: siteConfig.name,
+  openGraph: { siteName: siteConfig.name, locale: "en_IN", type: "website" },
+  // Keep placeholder products and demo prices out of search engines while in demo mode.
+  robots: siteConfig.demoMode ? { index: false, follow: false } : undefined,
 };
 
 export const viewport: Viewport = {

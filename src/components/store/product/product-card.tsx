@@ -3,9 +3,9 @@ import Link from "next/link";
 
 import { siteConfig } from "@/config/site";
 import {
+  getCardImages,
+  getProductHref,
   getDiscountPercent,
-  getHoverImage,
-  getPrimaryImage,
   getProductColours,
   getProductStockStatus,
 } from "@/lib/catalog";
@@ -18,12 +18,13 @@ const CARD_IMAGE_SIZES = "(min-width: 1024px) 25vw, 50vw";
 
 interface ProductCardProps {
   product: ProductWithDetails;
+  /** Show this colourway's images (e.g. when a colour filter is active). Defaults to the lead colour. */
+  colourId?: string | null;
   className?: string;
 }
 
-export function ProductCard({ product, className }: ProductCardProps) {
-  const primary = getPrimaryImage(product);
-  const hover = getHoverImage(product);
+export function ProductCard({ product, colourId, className }: ProductCardProps) {
+  const { primary, hover } = getCardImages(product, colourId);
   const colours = getProductColours(product);
   const stockStatus = getProductStockStatus(product);
   const soldOut = stockStatus === "out_of_stock";
@@ -31,7 +32,7 @@ export function ProductCard({ product, className }: ProductCardProps) {
   return (
     <article className={cn("group relative", className)}>
       <Link
-        href={`/product/${product.slug}`}
+        href={getProductHref(product, colourId)}
         className="block outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-4"
       >
         <div className="relative aspect-3/4 overflow-hidden bg-offwhite">

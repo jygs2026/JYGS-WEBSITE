@@ -7,6 +7,21 @@ export const collections = {
   "best-sellers": "Best Sellers",
 } as const satisfies Record<string, string>;
 
+/** Listing behaviour for each collection page. */
+export const collectionDetails = {
+  "new-arrivals": {
+    description: "The latest JYGS oversized and boxy tees, newest first.",
+    defaultSort: "newest",
+  },
+  "best-sellers": {
+    description: "The JYGS tees customers come back for.",
+    defaultSort: "featured",
+  },
+} as const satisfies Record<
+  keyof typeof collections,
+  { description: string; defaultSort: "featured" | "newest" }
+>;
+
 export const policies = {
   shipping: "Shipping Policy",
   returns: "Returns Policy",

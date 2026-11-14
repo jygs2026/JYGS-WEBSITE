@@ -8,7 +8,14 @@ const eslintConfig = defineConfig([
   ...nextTs,
   // Must stay last: turns off stylistic rules that conflict with Prettier.
   prettier,
-  globalIgnores([".next/**", "out/**", "build/**", "next-env.d.ts"]),
+  globalIgnores([
+    ".next/**",
+    "out/**",
+    "build/**",
+    "next-env.d.ts",
+    "test-results/**",
+    "playwright-report/**",
+  ]),
 ]);
 
 export default eslintConfig;

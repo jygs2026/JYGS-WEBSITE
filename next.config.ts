@@ -12,6 +12,10 @@ const nextConfig: NextConfig = {
       // Supabase Storage (product + campaign images) is added in M4 once the project URL exists.
     ],
   },
+  async redirects() {
+    // Product search lives on the shop page (`/shop?q=`); the query string is passed through.
+    return [{ source: "/search", destination: "/shop", permanent: false }];
+  },
   turbopack: {
     rules: {
       "*.css": {

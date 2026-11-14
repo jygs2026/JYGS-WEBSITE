@@ -12,17 +12,26 @@
  * scripts/generate-placeholder-tees.mjs). Replace with the owner's real catalogue (brief §15).
  * In M5 this file is replaced by Supabase queries behind the same service functions.
  */
+import {
+  JYGS_COLOURS,
+  PRODUCT_FABRIC,
+  SIZE_LABELS,
+  type JygsColourSlug,
+} from "@/config/product-info";
+import { findBrandRuleViolations } from "@/lib/brand-rules";
 import type {
   Category,
   Colour,
+  ProductFit,
   ProductImage,
   ProductStatus,
   ProductWithDetails,
   Size,
+  SizeLabel,
   VariantWithStock,
 } from "@/types";
 
-import { stockPhoto, teeArt, type BackGraphic, type TeeColour } from "./images";
+import { stockPhoto, teeArt, type BackGraphic } from "./images";
 
 const MOCK_TIMESTAMP = "2026-11-01T00:00:00.000Z";
 
@@ -35,40 +44,31 @@ function mockId(namespace: number, n: number): string {
 // Sizes and colours
 // ---------------------------------------------------------------------------
 
-const sizeLabels = ["XS", "S", "M", "L", "XL", "XXL"] as const;
-type SizeLabel = (typeof sizeLabels)[number];
-
-export const mockSizes: Size[] = sizeLabels.map((label, i) => ({
+/** XS–XL only (see SIZE_LABELS in src/config/product-info.ts). */
+export const mockSizes: Size[] = SIZE_LABELS.map((label, i) => ({
   id: mockId(1, i + 1),
   label,
   sortOrder: i,
 }));
 
 /**
- * JYGS collection colourways. Hex values are display approximations for swatches and must stay
- * in sync with scripts/generate-placeholder-tees.mjs.
+ * JYGS collection colourways from the brand config. Hex values are swatch approximations and
+ * must stay in sync with scripts/generate-placeholder-tees.mjs.
  */
-const colourDefs = {
-  black: { name: "Black", hex: "#151515", art: "black" },
-  offWhite: { name: "Off-White", hex: "#EEE9DD", art: "off-white" },
-  cherry: { name: "Cherry", hex: "#7A1F2B", art: "cherry" },
-  pineGreen: { name: "Pine Green", hex: "#1F3B2E", art: "pine-green" },
-  meLavender: { name: "ME Lavender", hex: "#B8A9CF", art: "me-lavender" },
-  plum: { name: "Plum", hex: "#4A2340", art: "plum" },
-  white: { name: "White", hex: "#FAFAF7", art: "white" },
-} as const satisfies Record<string, { name: string; hex: string; art: TeeColour }>;
-type ColourKey = keyof typeof colourDefs;
+type ColourKey = JygsColourSlug;
 
-export const mockColours: Colour[] = (Object.keys(colourDefs) as ColourKey[]).map((key, i) => ({
+export const mockColours: Colour[] = JYGS_COLOURS.map((c, i) => ({
   id: mockId(2, i + 1),
-  name: colourDefs[key].name,
-  hex: colourDefs[key].hex,
+  name: c.name,
+  slug: c.slug,
+  hex: c.hex,
   sortOrder: i,
 }));
 
-const colourByKey = Object.fromEntries(
-  (Object.keys(colourDefs) as ColourKey[]).map((key, i) => [key, mockColours[i]]),
-) as Record<ColourKey, Colour>;
+const colourByKey = Object.fromEntries(mockColours.map((c) => [c.slug, c])) as Record<
+  ColourKey,
+  Colour
+>;
 
 const sizeByLabel = Object.fromEntries(mockSizes.map((s) => [s.label, s])) as Record<
   SizeLabel,
@@ -125,7 +125,6 @@ const categoryBySlug = Object.fromEntries(mockCategories.map((c) => [c.slug, c])
 // Products (premium oversized / boxy tees only)
 // ---------------------------------------------------------------------------
 
-type JygsFit = "Oversized" | "Boxy";
 type JygsGsm = 240 | 250 | 260;
 
 interface MockProductInput {
@@ -141,54 +140,62 @@ interface MockProductInput {
   isNewArrival?: boolean;
   isBestSeller?: boolean;
   isFeatured?: boolean;
-  fit: JygsFit;
+  fit: ProductFit;
   gsm: JygsGsm;
   /** Placeholder back-graphic style shown on the back view. */
   backGraphic: BackGraphic;
   createdAt: string;
-  /** First colour is the one shown in product imagery. */
+  /** First colour is the lead colourway (primary image). */
   colours: [ColourKey, ...ColourKey[]];
   /** Stock per size, applied to every colour. Sizes not listed are not offered. */
   stock: Partial<Record<SizeLabel, number>>;
+  /** Optional per-colour stock overrides, e.g. a size sold out in one colourway only. */
+  stockOverrides?: Partial<Record<ColourKey, Partial<Record<SizeLabel, number>>>>;
 }
-
-const FABRIC = "100% compact cotton";
 
 function buildProduct(input: MockProductInput): ProductWithDetails {
   const productId = mockId(4, input.n);
-  const lead = colourDefs[input.colours[0]];
   const fitLabel = input.fit.toLowerCase();
 
-  const images: ProductImage[] = [
-    {
-      id: mockId(5, input.n * 10),
-      productId,
-      url: teeArt(lead.art, "front"),
-      alt: `Placeholder artwork: front of a ${lead.name} ${fitLabel} tee with a small JYGS chest logo`,
-      sortOrder: 0,
-      isPrimary: true,
-    },
-    {
-      id: mockId(5, input.n * 10 + 1),
-      productId,
-      url: teeArt(lead.art, "back", input.backGraphic),
-      alt: `Placeholder artwork: back of a ${lead.name} ${fitLabel} tee with a large JYGS graphic`,
-      sortOrder: 1,
-      isPrimary: false,
-    },
-  ];
+  // Front + back placeholder artwork for every offered colourway; lead colour front is primary.
+  const images: ProductImage[] = input.colours.flatMap((colourKey, c) => {
+    const colour = colourByKey[colourKey];
+    return [
+      {
+        id: mockId(5, input.n * 100 + c * 2),
+        productId,
+        colourId: colour.id,
+        view: "front" as const,
+        url: teeArt(colourKey, "front"),
+        alt: `Placeholder artwork: front of a ${colour.name} ${fitLabel} tee with a small JYGS chest logo`,
+        sortOrder: c * 2,
+        isPrimary: c === 0,
+      },
+      {
+        id: mockId(5, input.n * 100 + c * 2 + 1),
+        productId,
+        colourId: colour.id,
+        view: "back" as const,
+        url: teeArt(colourKey, "back", input.backGraphic),
+        alt: `Placeholder artwork: back of a ${colour.name} ${fitLabel} tee with a large JYGS graphic`,
+        sortOrder: c * 2 + 1,
+        isPrimary: false,
+      },
+    ];
+  });
 
   let variantIndex = 0;
   const variants: VariantWithStock[] = input.colours.flatMap((colourKey) =>
-    (Object.entries(input.stock) as [SizeLabel, number][]).map(([sizeLabel, quantity]) => {
+    (Object.entries(input.stock) as [SizeLabel, number][]).map(([sizeLabel, baseQuantity]) => {
       variantIndex += 1;
+      const quantity = input.stockOverrides?.[colourKey]?.[sizeLabel] ?? baseQuantity;
       const id = mockId(6, input.n * 100 + variantIndex);
       return {
         id,
         productId,
         sizeId: sizeByLabel[sizeLabel].id,
         colourId: colourByKey[colourKey].id,
-        sku: `JYGS-${input.n.toString().padStart(3, "0")}-${colourDefs[colourKey].art.toUpperCase()}-${sizeLabel}`,
+        sku: `JYGS-${input.n.toString().padStart(3, "0")}-${colourKey.toUpperCase()}-${sizeLabel}`,
         priceOverride: null,
         isActive: true,
         size: sizeByLabel[sizeLabel],
@@ -218,7 +225,7 @@ function buildProduct(input: MockProductInput): ProductWithDetails {
     isNewArrival: input.isNewArrival ?? false,
     isBestSeller: input.isBestSeller ?? false,
     isFeatured: input.isFeatured ?? false,
-    fabric: FABRIC,
+    fabric: PRODUCT_FABRIC,
     fit: input.fit,
     gsm: input.gsm,
     images,
@@ -228,7 +235,7 @@ function buildProduct(input: MockProductInput): ProductWithDetails {
   };
 }
 
-const fullRun = { S: 12, M: 18, L: 15, XL: 9, XXL: 4 } satisfies Partial<Record<SizeLabel, number>>;
+const fullRun = { XS: 6, S: 12, M: 18, L: 15, XL: 9 } satisfies Partial<Record<SizeLabel, number>>;
 const lowRun = { S: 2, M: 3, L: 1, XL: 2 } satisfies Partial<Record<SizeLabel, number>>;
 
 export const mockProducts: ProductWithDetails[] = [
@@ -246,8 +253,10 @@ export const mockProducts: ProductWithDetails[] = [
     gsm: 240,
     backGraphic: "stack",
     createdAt: "2026-11-10T00:00:00.000Z",
-    colours: ["black", "offWhite", "white"],
+    colours: ["black", "off-white", "white"],
     stock: fullRun,
+    // Demo: White sold out in XS/S, low in M — size availability changes with colour.
+    stockOverrides: { white: { XS: 0, S: 0, M: 2 } },
   }),
   buildProduct({
     n: 2,
@@ -279,8 +288,9 @@ export const mockProducts: ProductWithDetails[] = [
     gsm: 260,
     backGraphic: "orbit",
     createdAt: "2026-11-06T00:00:00.000Z",
-    colours: ["pineGreen", "black", "offWhite"],
-    stock: { S: 6, M: 10, L: 10, XL: 6, XXL: 2 },
+    colours: ["pine-green", "black", "off-white"],
+    stock: { S: 6, M: 10, L: 10, XL: 6 },
+    stockOverrides: { "off-white": { XL: 0 } },
   }),
   buildProduct({
     n: 4,
@@ -294,7 +304,7 @@ export const mockProducts: ProductWithDetails[] = [
     gsm: 240,
     backGraphic: "repeat",
     createdAt: "2026-11-04T00:00:00.000Z",
-    colours: ["meLavender", "offWhite", "black"],
+    colours: ["me-lavender", "off-white", "black"],
     stock: { XS: 5, S: 9, M: 11, L: 6, XL: 2 },
   }),
   buildProduct({
@@ -342,7 +352,7 @@ export const mockProducts: ProductWithDetails[] = [
     gsm: 260,
     backGraphic: "stack",
     createdAt: "2026-08-01T00:00:00.000Z",
-    colours: ["offWhite", "white"],
+    colours: ["off-white", "white"],
     stock: { S: 4, M: 7, L: 7, XL: 3 },
   }),
   buildProduct({
@@ -357,7 +367,7 @@ export const mockProducts: ProductWithDetails[] = [
     gsm: 260,
     backGraphic: "monogram",
     createdAt: "2026-07-15T00:00:00.000Z",
-    colours: ["pineGreen"],
+    colours: ["pine-green"],
     stock: { S: 0, M: 0, L: 0, XL: 0 },
   }),
   buildProduct({
@@ -371,7 +381,7 @@ export const mockProducts: ProductWithDetails[] = [
     gsm: 250,
     backGraphic: "repeat",
     createdAt: "2026-06-20T00:00:00.000Z",
-    colours: ["cherry", "offWhite"],
+    colours: ["cherry", "off-white"],
     stock: { M: 6, L: 8, XL: 4 },
   }),
   buildProduct({
@@ -385,7 +395,7 @@ export const mockProducts: ProductWithDetails[] = [
     gsm: 240,
     backGraphic: "stack",
     createdAt: "2026-06-10T00:00:00.000Z",
-    colours: ["meLavender"],
+    colours: ["me-lavender"],
     stock: { XS: 4, S: 6, M: 6, L: 3 },
   }),
   buildProduct({
@@ -405,3 +415,9 @@ export const mockProducts: ProductWithDetails[] = [
     stock: { M: 5 },
   }),
 ];
+
+// Fail fast (at build/dev time) if demo data ever breaks the JYGS brand rules.
+const brandRuleViolations = findBrandRuleViolations(mockProducts);
+if (brandRuleViolations.length > 0) {
+  throw new Error(`Mock catalogue breaks JYGS brand rules:\n- ${brandRuleViolations.join("\n- ")}`);
+}

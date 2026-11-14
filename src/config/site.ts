@@ -39,6 +39,15 @@ export const siteConfig = {
 
 export type OrderMode = "deferred" | "catalogue" | "whatsapp" | "cod";
 
+/**
+ * Absolute site origin used for canonical URLs, the sitemap and Open Graph.
+ * Set NEXT_PUBLIC_SITE_URL to the production domain when deploying.
+ */
+export const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000").replace(
+  /\/+$/,
+  "",
+);
+
 export interface NavLink {
   label: string;
   href: string;

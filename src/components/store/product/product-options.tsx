@@ -83,17 +83,22 @@ export function SizeSelector({
   );
 
   return (
-    <fieldset aria-describedby="size-status" className="relative">
-      <legend className="text-xs font-semibold tracking-label uppercase">
+    <fieldset aria-describedby="size-status" className="min-w-0">
+      {/*
+        Floating the legend takes it out of the fieldset-border layout, so it sits on one row
+        with the Size guide link (an absolutely positioned link would drop below the legend and
+        crowd the XL button). The legend stays the fieldset's first child for screen readers.
+      */}
+      <legend className="float-left flex min-h-6 items-center text-xs font-semibold tracking-label uppercase">
         Size:{" "}
-        <span className="font-normal tracking-normal normal-case">
+        <span className="ml-1 font-normal tracking-normal normal-case">
           {selected ?? "Select a size"}
         </span>
       </legend>
-      <div className="absolute -top-0.5 right-0">
+      <div className="float-right flex min-h-6 items-center">
         <SizeGuide fit={fit} />
       </div>
-      <div className="mt-4 grid grid-cols-5 gap-2">
+      <div className="clear-both grid grid-cols-5 gap-2 pt-3">
         {options.map((option) => {
           const disabled = option.status === "out_of_stock" || option.status === "unavailable";
           return (

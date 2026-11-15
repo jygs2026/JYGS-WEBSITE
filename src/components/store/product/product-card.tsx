@@ -1,11 +1,13 @@
 import Image from "next/image";
 import Link from "next/link";
 
+import { WishlistHeart } from "@/components/store/wishlist/wishlist-heart";
 import { siteConfig } from "@/config/site";
 import {
   getCardImages,
   getProductHref,
   getDiscountPercent,
+  getLeadColourId,
   getProductColours,
   getProductStockStatus,
 } from "@/lib/catalog";
@@ -20,14 +22,26 @@ interface ProductCardProps {
   product: ProductWithDetails;
   /** Show this colourway's images (e.g. when a colour filter is active). Defaults to the lead colour. */
   colourId?: string | null;
+  /**
+   * Show the wishlist heart (M3.4) — Shop, Category and Collection listings only. Off by default,
+   * so homepage and related-product cards are unchanged.
+   */
+  showWishlist?: boolean;
   className?: string;
 }
 
-export function ProductCard({ product, colourId, className }: ProductCardProps) {
+export function ProductCard({
+  product,
+  colourId,
+  showWishlist = false,
+  className,
+}: ProductCardProps) {
   const { primary, hover } = getCardImages(product, colourId);
   const colours = getProductColours(product);
   const stockStatus = getProductStockStatus(product);
   const soldOut = stockStatus === "out_of_stock";
+  // The colour this card shows (filtered colour, else the lead colour) — what the heart saves.
+  const heartColourId = showWishlist ? (colourId ?? getLeadColourId(product)) : null;
 
   return (
     <article className={cn("group relative", className)}>
@@ -95,6 +109,16 @@ export function ProductCard({ product, colourId, className }: ProductCardProps) 
           ) : null}
         </div>
       </Link>
+      {showWishlist && heartColourId ? (
+        // Outside the card link (a button inside a link is invalid HTML); over the image corner.
+        <WishlistHeart
+          productId={product.id}
+          productName={product.name}
+          colourId={heartColourId}
+          colours={colours.map((c) => ({ id: c.id, name: c.name }))}
+          className="absolute top-1.5 right-1.5"
+        />
+      ) : null}
     </article>
   );
 }

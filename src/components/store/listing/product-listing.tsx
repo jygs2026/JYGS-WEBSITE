@@ -89,6 +89,7 @@ export async function ProductListingResults({
               <ProductGrid
                 products={products}
                 displayColourIds={displayColourIds}
+                showWishlist
                 className="lg:grid-cols-3"
               />
             ) : (

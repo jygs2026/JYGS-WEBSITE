@@ -82,11 +82,14 @@ test.describe("Product detail page", () => {
     await expect(guide).toBeHidden();
   });
 
-  test("Add to Bag is disabled and marked Coming Soon", async ({ page }) => {
+  test("Add to Bag is enabled, and no payment is taken (M3.2)", async ({ page }) => {
     await gotoProduct(page, PRODUCT);
-    const button = page.getByRole("button", { name: "Add to Bag – Coming Soon" });
-    await expect(button).toBeDisabled();
-    await expect(page.getByText("Online ordering isn’t available yet.")).toBeVisible();
+    const button = page.getByRole("button", { name: "Add to Bag", exact: true });
+    await expect(button).toBeEnabled();
+    await expect(
+      page.getByText("Checkout isn’t available yet. No payment is taken on this site."),
+    ).toBeVisible();
+    await expect(page.getByRole("button", { name: /coming soon/i })).toHaveCount(0);
   });
 
   test("colour can be changed with the keyboard", async ({ page }) => {

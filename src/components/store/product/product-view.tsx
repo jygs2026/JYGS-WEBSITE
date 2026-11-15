@@ -1,8 +1,7 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useMemo, useRef, useState, type ReactNode } from "react";
 
-import { Button } from "@/components/ui/button";
 import { PRODUCT_FABRIC } from "@/config/product-info";
 import {
   getColourImages,
@@ -14,14 +13,14 @@ import {
 } from "@/lib/catalog";
 import type { ProductWithDetails, SizeLabel } from "@/types";
 
+import { AddToBag } from "./add-to-bag";
 import { Price } from "./price";
 import { ProductGallery } from "./product-gallery";
 import { ColourSwatches, SizeSelector } from "./product-options";
 
 /**
- * Interactive part of the product page: gallery + colour/size selection.
- * Selection is local UI state only — nothing is submitted (cart/ordering arrive later).
- * `children` is server-rendered product information shown under the options.
+ * Interactive part of the product page: gallery, colour/size selection and Add to Bag (saved in
+ * the browser; no checkout or payment). `children` is server-rendered product information.
  */
 export function ProductView({
   product,
@@ -57,6 +56,22 @@ export function ProductView({
 
   const images = useMemo(() => getColourImages(product, colourId), [product, colourId]);
   const sizeOptions = useMemo(() => getSizeOptions(product, colourId), [product, colourId]);
+
+  const [sizeError, setSizeError] = useState(false);
+  const sizeGroupRef = useRef<HTMLDivElement>(null);
+
+  function selectSize(next: SizeLabel) {
+    setSize(next);
+    setSizeError(false);
+  }
+
+  /** Add to Bag without a size: show the error and move focus to the first available size. */
+  function requireSize() {
+    setSizeError(true);
+    sizeGroupRef.current
+      ?.querySelector<HTMLInputElement>('input[type="radio"]:not(:disabled)')
+      ?.focus();
+  }
 
   function selectColour(nextId: string) {
     setColourId(nextId);
@@ -112,24 +127,24 @@ export function ProductView({
 
         <div className="mt-8 space-y-7">
           <ColourSwatches colours={colours} selectedId={colourId} onSelect={selectColour} />
-          <SizeSelector
-            options={sizeOptions}
-            selected={size}
-            onSelect={setSize}
-            fit={product.fit}
-          />
+          <div ref={sizeGroupRef}>
+            <SizeSelector
+              options={sizeOptions}
+              selected={size}
+              onSelect={selectSize}
+              fit={product.fit}
+              error={sizeError ? "Please select a size." : null}
+            />
+          </div>
         </div>
 
-        <Button
-          disabled
-          aria-describedby="ordering-note"
-          className="mt-4 h-12 w-full rounded-none text-xs font-bold tracking-label uppercase"
-        >
-          Add to Bag – Coming Soon
-        </Button>
-        <p id="ordering-note" className="mt-2 text-xs text-muted-foreground">
-          Online ordering isn’t available yet. No payment is taken on this site.
-        </p>
+        <AddToBag
+          key={`${colourId ?? "none"}-${size ?? "none"}`}
+          product={product}
+          colourId={colourId}
+          size={size}
+          onMissingSize={requireSize}
+        />
 
         {children}
       </div>

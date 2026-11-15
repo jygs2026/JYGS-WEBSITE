@@ -1,18 +1,27 @@
 import { siteConfig } from "@/config/site";
 
-const inrFormatter = new Intl.NumberFormat(siteConfig.locale, {
-  style: "currency",
-  currency: siteConfig.currency,
+const currency = { style: "currency", currency: siteConfig.currency } as const;
+/** Whole rupees: "₹1,499". */
+const wholeRupees = new Intl.NumberFormat(siteConfig.locale, {
+  ...currency,
   minimumFractionDigits: 0,
+  maximumFractionDigits: 0,
+});
+/** With paise: always two digits, "₹1,499.50" (never "₹1,499.5"). */
+const withPaise = new Intl.NumberFormat(siteConfig.locale, {
+  ...currency,
+  minimumFractionDigits: 2,
   maximumFractionDigits: 2,
 });
 
 /**
- * Formats a price stored as integer paise (₹1 = 100 paise) for display, e.g. 149900 → "₹1,499".
- * All money is stored and computed in paise to avoid floating-point rounding errors.
+ * Formats a price stored as integer paise (₹1 = 100 paise) for display, e.g. 149900 → "₹1,499",
+ * 149950 → "₹1,499.50". All money is stored and computed in integer paise to avoid
+ * floating-point rounding errors; division happens only here, for display.
  */
 export function formatPrice(paise: number): string {
-  return inrFormatter.format(paise / 100);
+  const whole = Math.round(paise);
+  return (whole % 100 === 0 ? wholeRupees : withPaise).format(whole / 100);
 }
 
 /** Converts a rupee amount entered by a person (e.g. in an admin form) to integer paise. */

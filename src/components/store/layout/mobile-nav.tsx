@@ -15,10 +15,14 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { mainNav, secondaryNav } from "@/config/site";
+import { useWishlist } from "@/hooks/use-wishlist";
+import { formatBadgeCount, wishlistLinkLabel } from "@/lib/cart/cart-feedback";
 import { cn } from "@/lib/utils";
 
 /** Slide-in navigation drawer for mobile and tablet. */
 export function MobileNav({ className }: { className?: string }) {
+  const wishlist = useWishlist();
+  const wishlistCount = wishlist.ready ? wishlist.count : 0;
   return (
     <Sheet>
       <SheetTrigger asChild>
@@ -56,18 +60,31 @@ export function MobileNav({ className }: { className?: string }) {
             ))}
           </ul>
           <ul className="mt-8 space-y-4">
-            {secondaryNav.map((link) => (
-              <li key={link.href}>
-                <SheetClose asChild>
-                  <Link
-                    href={link.href}
-                    className="text-sm text-muted-foreground transition-colors hover:text-foreground"
-                  >
-                    {link.label}
-                  </Link>
-                </SheetClose>
-              </li>
-            ))}
+            {secondaryNav.map((link) => {
+              const isWishlist = link.href === "/wishlist";
+              return (
+                <li key={link.href}>
+                  <SheetClose asChild>
+                    <Link
+                      href={link.href}
+                      aria-label={isWishlist ? wishlistLinkLabel(wishlistCount) : undefined}
+                      className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+                    >
+                      {link.label}
+                      {isWishlist && wishlistCount > 0 ? (
+                        <span
+                          aria-hidden
+                          data-count-badge=""
+                          className="flex h-5 min-w-5 items-center justify-center rounded-full bg-ink px-1.5 text-[10px] leading-none font-semibold text-paper tabular-nums"
+                        >
+                          {formatBadgeCount(wishlistCount)}
+                        </span>
+                      ) : null}
+                    </Link>
+                  </SheetClose>
+                </li>
+              );
+            })}
           </ul>
         </nav>
       </SheetContent>

@@ -1,14 +1,20 @@
 import type { Metadata } from "next";
 
-import { ComingSoon } from "@/components/store/coming-soon";
+import { WishlistView } from "@/components/store/wishlist/wishlist-view";
+import { siteConfig } from "@/config/site";
+import { getCartCatalog } from "@/services/catalog";
 
-export const metadata: Metadata = { title: "Wishlist" };
+export const metadata: Metadata = {
+  title: "Wishlist",
+  // Personal and stored in the browser: never indexed (nothing followed in demo mode).
+  robots: { index: false, follow: !siteConfig.demoMode },
+};
 
-export default function WishlistPage() {
-  return (
-    <ComingSoon
-      title="Wishlist"
-      description="Save your favourite pieces here. The wishlist arrives in the next build and is saved to your account once sign-in is available."
-    />
-  );
+/**
+ * The wishlist (M3.4). The current catalogue is passed to the client, where the saved wishlist
+ * is read from browser storage and joined with it. No account, checkout or payment in this phase.
+ */
+export default async function WishlistPage() {
+  const catalog = await getCartCatalog();
+  return <WishlistView catalog={catalog} />;
 }

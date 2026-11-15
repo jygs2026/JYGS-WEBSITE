@@ -1,14 +1,21 @@
 import type { Metadata } from "next";
 
-import { ComingSoon } from "@/components/store/coming-soon";
+import { CartView } from "@/components/store/cart/cart-view";
+import { siteConfig } from "@/config/site";
+import { getCartCatalog } from "@/services/catalog";
 
-export const metadata: Metadata = { title: "Bag" };
+export const metadata: Metadata = {
+  title: "Bag",
+  // The bag is personal and stored in the browser: never indexed (in demo mode nothing is
+  // followed either, matching the site-wide setting).
+  robots: { index: false, follow: !siteConfig.demoMode },
+};
 
-export default function CartPage() {
-  return (
-    <ComingSoon
-      title="Your Bag"
-      description="Bag and quantity management arrive in the next build. Ordering stays switched off until the order method (WhatsApp enquiry, COD request or catalogue-only) is confirmed. No online payments in Phase 1."
-    />
-  );
+/**
+ * The bag (M3.3). The current catalogue is passed to the client, where the saved bag is read
+ * from browser storage and joined with it. No checkout, order or payment exists in this phase.
+ */
+export default async function CartPage() {
+  const catalog = await getCartCatalog();
+  return <CartView catalog={catalog} />;
 }

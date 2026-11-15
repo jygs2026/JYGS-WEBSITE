@@ -71,11 +71,14 @@ export function SizeSelector({
   selected,
   onSelect,
   fit,
+  error = null,
 }: {
   options: SizeOption[];
   selected: SizeLabel | null;
   onSelect: (size: SizeLabel) => void;
   fit: string;
+  /** Validation message (e.g. Add to Bag without a size). */
+  error?: string | null;
 }) {
   const selectedOption = options.find((o) => o.label === selected);
   const allUnavailable = options.every(
@@ -83,7 +86,7 @@ export function SizeSelector({
   );
 
   return (
-    <fieldset aria-describedby="size-status" className="min-w-0">
+    <fieldset aria-describedby="size-error size-status" className="min-w-0">
       {/*
         Floating the legend takes it out of the fieldset-border layout, so it sits on one row
         with the Size guide link (an absolutely positioned link would drop below the legend and
@@ -127,6 +130,13 @@ export function SizeSelector({
           );
         })}
       </div>
+      <p
+        id="size-error"
+        role="alert"
+        className="mt-2 text-xs font-semibold text-destructive empty:hidden"
+      >
+        {error ?? ""}
+      </p>
       <p id="size-status" role="status" className="mt-2 min-h-5 text-xs text-muted-foreground">
         {allUnavailable
           ? "Sold out in this colour."

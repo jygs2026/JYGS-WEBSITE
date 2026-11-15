@@ -1,4 +1,4 @@
-import { Heart, Search, ShoppingBag, User, type LucideIcon } from "lucide-react";
+import { Search, User, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 
 import { Wordmark } from "@/components/brand/wordmark";
@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { mainNav } from "@/config/site";
 import { cn } from "@/lib/utils";
 
+import { HeaderBagLink, HeaderWishlistLink } from "./header-counts";
 import { MobileNav } from "./mobile-nav";
 
 export function SiteHeader() {
@@ -42,13 +43,8 @@ export function SiteHeader() {
             icon={User}
             className="hidden sm:inline-flex"
           />
-          <HeaderIconLink
-            href="/wishlist"
-            label="Wishlist"
-            icon={Heart}
-            className="hidden sm:inline-flex"
-          />
-          <HeaderIconLink href="/cart" label="Bag" icon={ShoppingBag} />
+          <HeaderWishlistLink className="hidden sm:inline-flex" />
+          <HeaderBagLink />
         </div>
       </div>
     </header>

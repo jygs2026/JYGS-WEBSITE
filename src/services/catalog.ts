@@ -17,7 +17,14 @@ import {
   type ListingScope,
 } from "@/lib/listing";
 import { mockCategories, mockColours, mockProducts } from "@/mocks/catalog";
-import type { Category, Colour, ProductFit, ProductWithDetails, SizeLabel } from "@/types";
+import type {
+  CartCatalog,
+  Category,
+  Colour,
+  ProductFit,
+  ProductWithDetails,
+  SizeLabel,
+} from "@/types";
 
 function publishedProducts(): ProductWithDetails[] {
   return mockProducts.filter((p) => p.status === "published" && p.category.isVisible);
@@ -100,6 +107,37 @@ export async function getFilterFacets(scope: ListingScope = {}): Promise<FilterF
     prices: PRICE_BANDS.filter((band) =>
       products.some((p) => p.price >= band.min && p.price <= band.max),
     ),
+  };
+}
+
+/**
+ * Slim, serializable snapshot of published products for the cart & wishlist pages (resolved in the
+ * browser, where the stored cart lives). Prices and stock are DEMO data. In M5 this becomes a
+ * lookup by variant ID behind the same CartCatalog shape.
+ */
+export async function getCartCatalog(): Promise<CartCatalog> {
+  return {
+    products: publishedProducts().map((p) => ({
+      id: p.id,
+      slug: p.slug,
+      name: p.name,
+      price: p.price,
+      compareAtPrice: p.compareAtPrice,
+      fit: p.fit,
+      gsm: p.gsm,
+      images: p.images.map((i) => ({ colourId: i.colourId, view: i.view, url: i.url, alt: i.alt })),
+      variants: p.variants.map((v) => ({
+        id: v.id,
+        colourId: v.colourId,
+        colourName: v.colour.name,
+        colourSlug: v.colour.slug,
+        colourHex: v.colour.hex,
+        size: v.size.label,
+        price: v.priceOverride ?? p.price,
+        available: Math.max(0, v.inventory.quantity),
+        isActive: v.isActive,
+      })),
+    })),
   };
 }
 

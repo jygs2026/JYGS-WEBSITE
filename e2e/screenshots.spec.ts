@@ -70,4 +70,102 @@ test.describe("Review screenshots", () => {
     await page.waitForTimeout(400);
     await shot("product-size-guide", false);
   });
+
+  test("capture M3.3 bag views", async ({ page }, testInfo) => {
+    mkdirSync(dir!, { recursive: true });
+    const shot = async (name: string, fullPage = true) => {
+      await loadAllImages(page);
+      await page.screenshot({ path: join(dir!, `${testInfo.project.name}-${name}.png`), fullPage });
+    };
+    const v = (i: number) => `00000000-0000-4000-8006-${(100 + i).toString().padStart(12, "0")}`;
+    const line = (variantId: string, quantity: number) => ({
+      variantId,
+      productId: "00000000-0000-4000-8004-000000000001",
+      quantity,
+      addedAt: "2026-11-14T09:00:00.000Z",
+    });
+    const seed = (lines: unknown[]) =>
+      page.evaluate(
+        (value) => localStorage.setItem("jygs:cart", value),
+        JSON.stringify({
+          v: 1,
+          rev: 1,
+          updatedAt: "2026-11-14T09:00:00.000Z",
+          data: { lines, ops: [] },
+        }),
+      );
+
+    await page.goto("/cart");
+    await expect(page.getByRole("heading", { name: "Your bag is empty" })).toBeVisible();
+    await shot("bag-empty", false);
+
+    await seed([line(v(3), 2), line(v(9), 1), line(v(5), 1)]);
+    await page.reload();
+    await expect(page.locator("[data-cart-line]")).toHaveCount(3);
+    await shot("bag");
+
+    // Adjusted (white M: 5 saved, 2 available), sold out (white XS) and unavailable lines.
+    await seed([
+      line(v(13), 5),
+      line(v(11), 1),
+      line("00000000-0000-4000-8006-999999999999", 2),
+      line(v(3), 1),
+    ]);
+    await page.reload();
+    await expect(page.locator("[data-cart-line]")).toHaveCount(4);
+    await shot("bag-availability");
+
+    await page.getByRole("button", { name: "Clear bag" }).click();
+    await expect(page.getByRole("alertdialog")).toBeVisible();
+    await page.waitForTimeout(300);
+    await shot("bag-clear-dialog", false);
+    await page.keyboard.press("Escape");
+
+    await page.evaluate(() => localStorage.setItem("jygs:cart", "{damaged"));
+    await page.reload();
+    await expect(page.locator('[data-storage-notice="recovered"]')).toBeVisible();
+    await shot("bag-storage-warning", false);
+  });
+
+  test("capture M3.4 wishlist views", async ({ page }, testInfo) => {
+    mkdirSync(dir!, { recursive: true });
+    const shot = async (name: string, fullPage = true) => {
+      await loadAllImages(page);
+      await page.screenshot({ path: join(dir!, `${testInfo.project.name}-${name}.png`), fullPage });
+    };
+    const id = (ns: number, n: number) =>
+      `00000000-0000-4000-8${ns.toString().padStart(3, "0")}-${n.toString().padStart(12, "0")}`;
+    const seed = (items: { productId: string; colourId: string | null }[]) =>
+      page.evaluate(
+        (value) => localStorage.setItem("jygs:wishlist", value),
+        JSON.stringify({
+          v: 1,
+          rev: 1,
+          updatedAt: "2026-11-14T09:00:00.000Z",
+          data: { items: items.map((i) => ({ ...i, addedAt: "2026-11-14T09:00:00.000Z" })) },
+        }),
+      );
+
+    await page.goto("/wishlist");
+    await expect(page.getByRole("heading", { name: "Your wishlist is empty" })).toBeVisible();
+    await shot("wishlist-empty", false);
+
+    // Hearts: Signature saved in Black (filled on the Black card; "other colour" on White).
+    await seed([
+      { productId: id(4, 1), colourId: id(2, 1) },
+      { productId: id(4, 2), colourId: null },
+      { productId: id(4, 8), colourId: id(2, 4) },
+      { productId: id(4, 3), colourId: id(2, 3) },
+    ]);
+    await page.goto("/shop");
+    await expect(page.locator('[data-wishlist-state="saved"]').first()).toBeVisible();
+    await shot("shop-hearts", false);
+    await page.goto("/shop?colour=white");
+    await expect(page.locator('[data-wishlist-state="other-colour"]').first()).toBeVisible();
+    await shot("shop-hearts-other-colour", false);
+
+    await page.goto("/wishlist");
+    await expect(page.locator("[data-wishlist-item]")).toHaveCount(4);
+    await shot("wishlist");
+  });
 });

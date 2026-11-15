@@ -35,7 +35,7 @@ test.describe("Product options layout", () => {
       const legend = sizeGroup.locator("legend");
       const guide = page.getByRole("button", { name: "Size guide" });
       const xl = sizeGroup.locator("label").filter({ hasText: /^XL/ });
-      const bag = page.getByRole("button", { name: "Add to Bag – Coming Soon" });
+      const bag = page.getByRole("button", { name: "Add to Bag", exact: true });
 
       const column = await box(page, infoColumn);
       const columnRight = column.x + column.width;

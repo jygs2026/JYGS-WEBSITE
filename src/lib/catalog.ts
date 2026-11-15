@@ -171,6 +171,39 @@ export function isSizeInStock(
   );
 }
 
+/** The variant for a colour + size (active only), or undefined. */
+export function findVariant(
+  product: ProductWithDetails,
+  colourId: string | null,
+  size: SizeLabel | null,
+): VariantWithStock | undefined {
+  if (!colourId || !size) return undefined;
+  return product.variants.find(
+    (v) => v.isActive && v.colourId === colourId && v.size.label === size,
+  );
+}
+
+export function getVariantById(
+  product: ProductWithDetails,
+  variantId: string,
+): VariantWithStock | undefined {
+  return product.variants.find((v) => v.id === variantId);
+}
+
+/** Current availability of a variant for cart operations (demo stock from the catalogue). */
+export function getVariantAvailability(
+  product: ProductWithDetails,
+  variant: VariantWithStock | undefined,
+): { variantId: string; productId: string; available: number; isActive: boolean } | null {
+  if (!variant || variant.productId !== product.id) return null;
+  return {
+    variantId: variant.id,
+    productId: product.id,
+    available: Math.max(0, variant.inventory.quantity),
+    isActive: variant.isActive,
+  };
+}
+
 /** Whole-number discount percentage, or null when there is no valid compare-at price. */
 export function getDiscountPercent(price: number, compareAtPrice: number | null): number | null {
   if (!compareAtPrice || compareAtPrice <= price) return null;
